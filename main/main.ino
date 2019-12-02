@@ -2,7 +2,7 @@
 // https://learn.adafruit.com/neopixel-painter/test-neopixel-strip
 // https://github.com/allenhuffman/LEDSign
 
-// Setup:
+// Setup: !
 // Nintento SNES classic controller is connected to SDA/SCL/Power
 // See below to modify code to fit your LED setup
 // TODO: Implement code to work with other LED setups
@@ -29,6 +29,33 @@ uint8_t displayArrayTestRainbow [numberLED * 3];
 uint8_t displayArrayTestGreen [numberLED * 3] = {0};
 bool colDirLeft = 0; // INITIAL column directon: false is right, true is left colDir: 1: right 2: left.
 bool rowsDirDown = 0; // Rows direction: False = start from bottom and go up. True = start from top and go down
+
+// Timing
+unsigned long prevMillis = 0;
+unsigned long currMillis = 0;
+// Block Stacking Game data
+#define ROWS 20
+#define COLS 10
+#define WHITE 33
+#define BLACK 32
+struct BLOCK
+{
+  int l_pos;
+  int blockSize;
+};
+
+bool board[COLS][ROWS] = {0};
+bool game_over = false;
+bool active = false;
+bool left = true;
+int curr_row = 0;
+unsigned long wait_timer = 0;
+unsigned long TIME_THRESH = 250;
+BLOCK active_block;
+int block_size = 3;
+int miss_counter = 0;
+bool win = false;
+
 
 Adafruit_NeoPixel lightStrand = Adafruit_NeoPixel(numberLED, pinStrand, NEO_RGB + NEO_KHZ400); //khz400 is for WS2811 lights
 
@@ -134,14 +161,18 @@ void setup()
     displayArrayTestGreen[j+1] = 255;
     j = j + 3;
   }
-
-  
   // ~~~~~~~~~~~~~~ END testing in setup ~~~~~~~~~
+
+  // Reset games:
+  resetBlockStackingGame();
 }
 
 // ~~~~ Global variables here. It's fine, it's an arduino! ~~~~~
+
+int gameChoice = 1;
 bool buttonPressInProcess = 0;
 bool displayOn = 0;
+
 // Controller button state bools
 boolean padUp = 0;
 boolean padDown = 0;
@@ -158,22 +189,7 @@ boolean rButton = 0;
 
 void loop() 
 {
-  /* ~~~~~~~~~~ Basic hackish testing, uncomment following, comment out the rest of the loop ~~~~~~~~~
-  chase(lightStrand.Color(255, 0, 0)); // Red
-  chase(lightStrand.Color(0, 255, 0)); // Green
-  chase(lightStrand.Color(0, 0, 255)); // Blue
-  outputArray(displayArrayTestRainbow, numberLED);
-  delay(100);
-  outputArray(displayArray, numberLED);
-  delay(100);
-  outputArray(displayArrayTestGreen, numberLED);
-  delay(100);
-  outputArray(displayArrayTestRainbow, numberLED);
-  delay(100);
-   ~~~~~~~~~~ END: Basic hackish testing ~~~~~~~~~
-  */
-
-  //snes.printDebug();  // Print all of the values!
+  // General Data
   bool controllerReadSuccess = snes.update();  // Get new data from the controller
   if (!controllerReadSuccess) // Error condition, no controller
   {
@@ -198,44 +214,153 @@ void loop()
     rButton = snes.buttonZR();
   }
 
-  // If UP is pressed, switch display on or off. 
-  if (padUp && !buttonPressInProcess)
+  
+  
+  // Block Stacking Game Logic
+  if (gameChoice == 1)
   {
-    Serial.println("Pad:");
-    Serial.println(padUp);
-    Serial.println("displayOn:");
-    Serial.println(displayOn);
-    if (displayOn == 0) // Turn ON display
+   {
+   if (active == false)
     {
-      for(int i = 0; i < displayArraySize; i++)
+      for (int i = active_block.l_pos; i < active_block.l_pos+active_block.blockSize; ++i)
       {
-        displayArray[i] = displayArrayTestRainbow[i];
+        board[i][curr_row] = 1;
       }
-      outputArray(displayArray, numberLED);
-      displayOn = 1;
-      Serial.println("Turning ON display");
-      Serial.println("displayOn:");
-      Serial.println(displayOn);
+      miss_counter = 0;
+      active = true;
+      prevMillis = millis();
+      print_board(board, displayArray);
     }
-    else // turn OFF display
+    else
     {
-      // Set displayArray to blank array
-      for(int i = 0; i < displayArraySize; i++)
+      if (wait_timer >= TIME_THRESH)
       {
-        displayArray[i] = 0;
+        if (left)
+        {
+          if (active_block.l_pos + active_block.blockSize > COLS - 1)
+          {
+            left = false;
+          }
+          else
+          {
+            board[active_block.l_pos][curr_row] = 0;
+            ++active_block.l_pos;
+            for (int i = active_block.l_pos; i < active_block.l_pos + active_block.blockSize; ++i)
+            {
+              board[i][curr_row] = 1;
+            }           
+          }
+        }
+        else
+        {
+          if (active_block.l_pos <= 0)
+          {
+            left = true;
+          }
+          else
+          {
+            board[active_block.l_pos+active_block.blockSize-1][curr_row] = 0;
+            --active_block.l_pos;
+            for (int i = active_block.l_pos; i < active_block.l_pos + active_block.blockSize; ++i)
+            {
+              board[i][curr_row] = 1;
+            }
+          }
+        }
+        print_board(board, displayArray);
+        wait_timer = 0;
+        prevMillis = millis();
       }
-      outputArray(displayArray, numberLED);
-      displayOn = 0;
-      Serial.println("Turning off display");
+      else
+      {
+        //key poll here
+        if (buttonPressed())
+        {
+          if (curr_row == 0)
+          {
+            ++curr_row;
+            active_block.l_pos = 4;
+            active_block.blockSize = block_size;
+            active = false;
+          }
+          else
+          {
+            if (left)
+            {
+              for (int i = active_block.l_pos; i < active_block.l_pos + active_block.blockSize; ++i)
+              {
+                if (board[i][curr_row - 1] == (char)BLACK)
+                {
+                  board[i][curr_row] = (char)BLACK;
+                  ++miss_counter;
+                }
+              }
+              if (miss_counter >= block_size)
+              {
+                game_over = true;
+              }
+            }
+            else
+            {
+              for (int i = active_block.l_pos; i < active_block.l_pos + active_block.blockSize; ++i)
+              {
+                if (board[i][curr_row - 1] == (char)BLACK)
+                {
+                  board[i][curr_row] = (char)BLACK;
+                  ++miss_counter;
+                }
+              }
+              if (miss_counter >= block_size)
+              {
+                game_over = true;
+              }
+            }
+            ++curr_row;
+            if (curr_row > 6)
+            {
+              block_size = 2;
+              TIME_THRESH = 175;
+            }
+            else if (curr_row > 12)
+            {
+              block_size = 1;
+              TIME_THRESH = 100;
+            }
+            else if (curr_row == 18)
+            {
+              game_over = true;
+              win = true;
+            }
+            active_block.l_pos = 4;
+            active_block.blockSize = block_size;
+            active = false;
+          }
+        }
+        //Polling stuff here
+        currMillis = millis();
+        wait_timer = currMillis - prevMillis;
+      }
     }
-    buttonPressInProcess = 1;
   }
-  else if (!padUp && buttonPressInProcess) // Finished pressing button
+  if (win && game_over)
   {
-    buttonPressInProcess = 0;
+    //cout << "You Won!" << endl;
+    outputArray(displayArrayTestRainbow, 200);
+    delay(3000);
+    resetBlockStackingGame();
   }
+  else if (game_over)
+  {
+    //cout << "You Lost." << endl;
+    chase(lightStrand.Color(255, 0, 0));
+    resetBlockStackingGame();
+  }
+  }
+
+  
 }
 
+// ~~~~~~~~ General functions ~~~~~~~~
 static void chase(uint32_t c) 
 {
  for(uint16_t i=0; i<lightStrand.numPixels()+4; i++) 
@@ -297,7 +422,60 @@ void outputArray(uint8_t displayArray[], int displayArraySize)
   {
     // TODO: Implement
   }
-
-  
   lightStrand.show();  
+}
+
+// ~~~~~~~ Block Stacking Game Functions
+void print_board(bool board[COLS][ROWS], uint8_t displayArray[])
+{
+  int arrayCounter = 0;
+  for (int i = ROWS-1; i >= 0; --i)
+  {
+    for (int j = 0; j < COLS; ++j)
+    {
+      //cout << board[j][i];
+      Serial.print(board[j][i]);
+      
+      if (board[j][i] == 0)
+      {
+      displayArray[arrayCounter] = 0;
+      displayArray[arrayCounter + 1] = 0;
+      displayArray[arrayCounter + 2] = 0;
+      }
+      else if (board[j][i] == 1)
+      {
+      displayArray[arrayCounter] = 0;
+      displayArray[arrayCounter + 1] = 110;
+      displayArray[arrayCounter + 2] = 0;
+      }
+      arrayCounter = (arrayCounter + 3);
+    }
+    Serial.print("\n");
+  }
+  outputArray(displayArray, 200);
+}
+
+void resetBlockStackingGame()
+{
+  for (int i = 0; i < ROWS; ++i)
+  {
+    for (int j = 0; j < COLS; ++j)
+    {
+      board[j][i] = 0;
+    }
+  }
+  game_over = false;
+  active = false;
+  left = true;
+  curr_row = 0;
+  wait_timer = 0;
+  TIME_THRESH = 250;
+  active_block.l_pos = 0;
+  active_block.blockSize = 3;
+}
+
+bool buttonPressed()
+{
+  if (aButton == 1 || bButton == 1 || xButton == 1 || yButton == 1 || lButton == 1 || rButton == 1) return 1;
+  else return 0;
 }
