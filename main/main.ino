@@ -226,11 +226,11 @@ void loop()
   // Block Stacking Game Logic
   if (gameChoice == 1)
   {
-    if (controllerFree())
-    {
-      withinPress = 0;
-    }
+   if (controllerFree())
    {
+     withinPress = 0;
+   }
+   
    if (active == false)
     {
       for (int i = active_block.l_pos; i < active_block.l_pos+active_block.blockSize; ++i)
@@ -328,20 +328,20 @@ void loop()
               }
             }
             ++curr_row;
-            if (curr_row > 6)
+            if (curr_row >= 18)
             {
-              block_size = 2;
-              TIME_THRESH = 175;
+              game_over = true;
+              win = true;
             }
             else if (curr_row > 12)
             {
               block_size = 1;
               TIME_THRESH = 100;
             }
-            else if (curr_row == 18)
+            if (curr_row > 6 && curr_row < 13)
             {
-              game_over = true;
-              win = true;
+              block_size = 2;
+              TIME_THRESH = 175;
             }
             active_block.l_pos = 4;
             active_block.blockSize = block_size;
@@ -359,6 +359,7 @@ void loop()
     //cout << "You Won!" << endl;
     outputArray(displayArrayTestRainbow, 200);
     delay(3000);
+    chase(lightStrand.Color(0, 255, 0));
     resetBlockStackingGame();
   }
   else if (game_over)
@@ -367,8 +368,8 @@ void loop()
     chase(lightStrand.Color(255, 0, 0));
     resetBlockStackingGame();
   }
-  }
 }
+
 
 // ~~~~~~~~ General functions ~~~~~~~~
 static void chase(uint32_t c) 
@@ -475,12 +476,14 @@ void resetBlockStackingGame()
     }
   }
   game_over = false;
+  win = false;
   active = false;
   left = true;
   curr_row = 0;
   wait_timer = 0;
   active_block.l_pos = 0;
   active_block.blockSize = 3;
+  block_size = 3;
 }
 
 bool buttonPressed()
