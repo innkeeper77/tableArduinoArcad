@@ -49,6 +49,8 @@ int main()
 
 	int wait_timer = 0;
 
+	int TIME_THRESH = 250;
+
 	block active_block;
 
 	active_block.l_pos = 0;
@@ -78,7 +80,7 @@ int main()
 		}
 		else
 		{
-			if (wait_timer >= 250)
+			if (wait_timer >= TIME_THRESH)
 			{
 				if (left)
 				{
@@ -117,9 +119,19 @@ int main()
 
 				print_board(board);
 
+				wait_timer = 0;
 			}
 			else
 			{
+				if (cin.get() != EOF)
+				{
+					active_block.l_pos = 0;
+
+					active_block.size = 3;
+
+					++curr_row;
+				}
+				//Polling stuff here
 				++wait_timer;
 			}
 		}
