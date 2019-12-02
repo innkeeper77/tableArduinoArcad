@@ -13,6 +13,7 @@ Block Stacking game
 #include <string>
 #include <iostream>
 #include <ctime>
+#include <stdlib.h>
 using namespace std;
 
 struct block
@@ -42,6 +43,8 @@ int main()
 
 	bool game_over = false;
 
+	bool win = false;
+
 	bool active = false;
 
 	bool left = true;
@@ -50,23 +53,29 @@ int main()
 
 	int wait_timer = 0;
 
-	int clocks = 0;
+	//int clocks = 0;
 
 	int TIME_THRESH = 250;
 
-	float temp = 0;
+	//float temp = 0;
 
 	block active_block;
 
 	int block_size = 3;
 
-	int iters = 0;
+	int miss_counter = 0;
+
+	//int iters = 0;
+
+	//int num_iters = 0;
 
 	int start_time = 0;
 
 	active_block.l_pos = 4;
 
 	active_block.size = block_size;
+
+	//srand(time(NULL));
 
 	for (int i = 0; i < ROWS; ++i)
 	{
@@ -86,8 +95,11 @@ int main()
 			}
 
 			active = true;
-			start_time = clock();
+			//start_time = clock();
 			print_board(board);
+			//num_iters = rand() % 15;
+			//num_iters = 15;
+			miss_counter = 0;
 		}
 		else
 		{
@@ -129,20 +141,35 @@ int main()
 				}
 
 				print_board(board);
-				++iters;
+				//++iters;
 				wait_timer = 0;
-				start_time = time(NULL);
+				//start_time = clock();
 			}
 			else
 			{
 				//key poll here
-  				if (iters > 30)
+  				//if (iters > num_iters)
+
 				{
 
 					if (curr_row == 0)
 					{
 						++curr_row;
-
+						if (curr_row > 6)
+						{
+							block_size = 2;
+							TIME_THRESH = 175;
+						}
+						else if (curr_row > 12)
+						{
+							block_size = 1;
+							TIME_THRESH = 100;
+						}
+						else if (curr_row == 18)
+						{
+							game_over = true;
+							win = true;
+						}
 						active_block.l_pos = 4;
 
 						active_block.size = block_size;
@@ -158,7 +185,12 @@ int main()
 								if (board[i][curr_row - 1] == (char)BLACK)
 								{
 									board[i][curr_row] = (char)BLACK;
+									++miss_counter;
 								}
+							}
+							if (miss_counter >= block_size)
+							{
+								game_over = true;
 							}
 						}
 						else
@@ -168,23 +200,57 @@ int main()
 								if (board[i][curr_row - 1] == (char)BLACK)
 								{
 									board[i][curr_row] = (char)BLACK;
+									++miss_counter;
 								}
 							}
+							if (miss_counter >= block_size)
+							{
+								game_over = true;
+							}
 						}
-						
+						++curr_row;
+						if (curr_row > 6)
+						{
+							block_size = 2;
+							TIME_THRESH = 175;
+						}
+						else if (curr_row > 12)
+						{
+							block_size = 1;
+							TIME_THRESH = 100;
+						}
+						else if (curr_row == 18)
+						{
+							game_over = true;
+							win = true;
+						}
+						active_block.l_pos = 4;
+
+						active_block.size = block_size;
+
+						active = false;
 					}
 
-					iters = 0;
+					//iters = 0;
 				}
 				//timer polling stuff here
 				
-				clocks = clock() - start_time;
+				//clocks = clock() - start_time;
 
-				temp = clocks / CLOCKS_PER_SEC;
+				//temp = clocks / CLOCKS_PER_SEC;
 
-				wait_timer = (int)temp * 1000;
+				//wait_timer = (int)temp * 1000;
 			}
 		}
 		
+	}
+
+	if (win)
+	{
+		//cout << "You Won!" << endl;
+	}
+	else
+	{
+		//cout << "You Lost." << endl;
 	}
 }
