@@ -182,7 +182,7 @@ int main()
 
 				temp = clocks / CLOCKS_PER_SEC;
 
-
+				wait_timer = (int)temp * 1000;
 			}
 		}
 		
