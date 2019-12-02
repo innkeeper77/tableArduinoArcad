@@ -33,6 +33,9 @@ bool rowsDirDown = 0; // Rows direction: False = start from bottom and go up. Tr
 // Timing
 unsigned long prevMillis = 0;
 unsigned long currMillis = 0;
+unsigned long prevMillisButton = 0;
+unsigned long currMillisButton = 0;
+bool withinPress = 0;
 // Block Stacking Game data
 #define ROWS 20
 #define COLS 10
@@ -50,7 +53,7 @@ bool active = false;
 bool left = true;
 int curr_row = 0;
 unsigned long wait_timer = 0;
-unsigned long TIME_THRESH = 250;
+unsigned long TIME_THRESH = 450;
 BLOCK active_block;
 int block_size = 3;
 int miss_counter = 0;
@@ -189,6 +192,7 @@ boolean rButton = 0;
 
 void loop() 
 {
+  //delay(2);
   // General Data
   bool controllerReadSuccess = snes.update();  // Get new data from the controller
   if (!controllerReadSuccess) // Error condition, no controller
@@ -214,11 +218,18 @@ void loop()
     rButton = snes.buttonZR();
   }
 
-  
+
+  //Serial.println(game_over);
+  //Serial.println(miss_counter);
+  //Serial.println();
   
   // Block Stacking Game Logic
   if (gameChoice == 1)
   {
+    if (controllerFree())
+    {
+      withinPress = 0;
+    }
    {
    if (active == false)
     {
@@ -356,8 +367,6 @@ void loop()
     resetBlockStackingGame();
   }
   }
-
-  
 }
 
 // ~~~~~~~~ General functions ~~~~~~~~
@@ -434,7 +443,7 @@ void print_board(bool board[COLS][ROWS], uint8_t displayArray[])
     for (int j = 0; j < COLS; ++j)
     {
       //cout << board[j][i];
-      Serial.print(board[j][i]);
+      //Serial.print(board[j][i]);
       
       if (board[j][i] == 0)
       {
@@ -450,7 +459,7 @@ void print_board(bool board[COLS][ROWS], uint8_t displayArray[])
       }
       arrayCounter = (arrayCounter + 3);
     }
-    Serial.print("\n");
+    //Serial.print("\n");
   }
   outputArray(displayArray, 200);
 }
@@ -469,13 +478,31 @@ void resetBlockStackingGame()
   left = true;
   curr_row = 0;
   wait_timer = 0;
-  TIME_THRESH = 250;
   active_block.l_pos = 0;
   active_block.blockSize = 3;
 }
 
 bool buttonPressed()
 {
-  if (aButton == 1 || bButton == 1 || xButton == 1 || yButton == 1 || lButton == 1 || rButton == 1) return 1;
-  else return 0;
+  
+  if (aButton == 1 || bButton == 1 || xButton == 1 || yButton == 1 || lButton == 1 || rButton == 1)
+  {
+    if (!withinPress)
+    {
+      withinPress = 1;
+      Serial.println("START PRESS");
+      return 1;
+    }
+  }
+  return 0;
+}
+
+bool controllerFree()
+{
+  
+  if (aButton == 0 && bButton == 0 && xButton == 0 && yButton == 0 && lButton == 0 && rButton == 0)
+  {
+    return 1;
+  }
+  return 0;
 }
