@@ -12,6 +12,7 @@ Block Stacking game
 
 #include <string>
 #include <iostream>
+#include <ctime>
 using namespace std;
 
 struct block
@@ -49,13 +50,23 @@ int main()
 
 	int wait_timer = 0;
 
+	int clocks = 0;
+
 	int TIME_THRESH = 250;
+
+	float temp = 0;
 
 	block active_block;
 
-	active_block.l_pos = 0;
+	int block_size = 3;
 
-	active_block.size = 3;
+	int iters = 0;
+
+	int start_time = 0;
+
+	active_block.l_pos = 4;
+
+	active_block.size = block_size;
 
 	for (int i = 0; i < ROWS; ++i)
 	{
@@ -69,13 +80,13 @@ int main()
 	{
 		if (active == false)
 		{
-			for (int i = 0; i < active_block.size; ++i)
+			for (int i = active_block.l_pos; i < active_block.l_pos+active_block.size; ++i)
 			{
 				board[i][curr_row] = (char)WHITE;
 			}
 
 			active = true;
-
+			start_time = clock();
 			print_board(board);
 		}
 		else
@@ -118,21 +129,60 @@ int main()
 				}
 
 				print_board(board);
-
+				++iters;
 				wait_timer = 0;
+				start_time = time(NULL);
 			}
 			else
 			{
-				if (cin.get() != EOF)
+				//key poll here
+  				if (iters > 30)
 				{
-					active_block.l_pos = 0;
 
-					active_block.size = 3;
+					if (curr_row == 0)
+					{
+						++curr_row;
 
-					++curr_row;
+						active_block.l_pos = 4;
+
+						active_block.size = block_size;
+
+						active = false;
+					}
+					else
+					{
+						if (left)
+						{
+							for (int i = active_block.l_pos; i < active_block.l_pos + active_block.size; ++i)
+							{
+								if (board[i][curr_row - 1] == (char)BLACK)
+								{
+									board[i][curr_row] = (char)BLACK;
+								}
+							}
+						}
+						else
+						{
+							for (int i = active_block.l_pos; i < active_block.l_pos + active_block.size; ++i)
+							{
+								if (board[i][curr_row - 1] == (char)BLACK)
+								{
+									board[i][curr_row] = (char)BLACK;
+								}
+							}
+						}
+						
+					}
+
+					iters = 0;
 				}
-				//Polling stuff here
-				++wait_timer;
+				//timer polling stuff here
+				
+				clocks = clock() - start_time;
+
+				temp = clocks / CLOCKS_PER_SEC;
+
+
 			}
 		}
 		
