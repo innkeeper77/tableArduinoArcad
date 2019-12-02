@@ -226,9 +226,6 @@ void loop()
   // Block Stacking Game Logic
   if (gameChoice == 1)
   {
-    Serial.print("1: ");
-    Serial.print(gameover);
-    Serial.print("\n");
     if (controllerFree())
     {
       withinPress = 0;
