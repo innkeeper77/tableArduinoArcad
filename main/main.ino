@@ -192,7 +192,7 @@ boolean rButton = 0;
 
 void loop() 
 {
-  //delay(2);
+  //Serial.println(miss_counter);
   // General Data
   bool controllerReadSuccess = snes.update();  // Get new data from the controller
   if (!controllerReadSuccess) // Error condition, no controller
@@ -226,6 +226,9 @@ void loop()
   // Block Stacking Game Logic
   if (gameChoice == 1)
   {
+    Serial.print("1: ");
+    Serial.print(gameover);
+    Serial.print("\n");
     if (controllerFree())
     {
       withinPress = 0;
@@ -300,9 +303,9 @@ void loop()
             {
               for (int i = active_block.l_pos; i < active_block.l_pos + active_block.blockSize; ++i)
               {
-                if (board[i][curr_row - 1] == (char)BLACK)
+                if (board[i][curr_row - 1] == 0)
                 {
-                  board[i][curr_row] = (char)BLACK;
+                  board[i][curr_row] = 0;
                   ++miss_counter;
                 }
               }
@@ -315,9 +318,10 @@ void loop()
             {
               for (int i = active_block.l_pos; i < active_block.l_pos + active_block.blockSize; ++i)
               {
-                if (board[i][curr_row - 1] == (char)BLACK)
+
+                if (board[i][curr_row - 1] == 0)
                 {
-                  board[i][curr_row] = (char)BLACK;
+                  board[i][curr_row] = 0;
                   ++miss_counter;
                 }
               }
@@ -490,7 +494,6 @@ bool buttonPressed()
     if (!withinPress)
     {
       withinPress = 1;
-      Serial.println("START PRESS");
       return 1;
     }
   }
